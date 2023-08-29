@@ -48,24 +48,26 @@ Feature: We can change what we are viewing on the grader report
     And I should see "Manual grade"
     And I should see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       | -5-       | -6-       | -7-       |
-      | Student 1          | 80        | 90        | 30        | 170       |
-    And I click on "Change to aggregates only" "link"
+      | -1-                | -1-                  | -3-       | -4-       | -5-       | -6-       |
+      | Student 1          | student1@example.com | 80        | 90        | 30        | 170       |
+    And I click on grade item menu "Course 1" of type "course" on "grader" page
+    And I choose "Show totals only" in the open action menu
     And I should not see "Test assignment name 1" in the "user-grades" "table"
     And I should not see "Test assignment name 2" in the "user-grades" "table"
     And I should not see "Manual grade"
     And I should see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       |
-      | Student 1          | 170       |
-    And I click on "Change to grades only" "link"
+      | -1-                | -1-                  | -3-       |
+      | Student 1          | student1@example.com | 170       |
+    And I click on grade item menu "Course 1" of type "course" on "grader" page
+    And I click on "Show grades only" "link"
     And I should see "Test assignment name 1" in the "user-grades" "table"
     And I should see "Test assignment name 2" in the "user-grades" "table"
     And I should see "Manual grade"
     And I should not see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       | -5-       | -6-       |
-      | Student 1          | 80        | 90        | 30        |
+      | -1-                | -1-                  | -3-       | -4-       | -5-       |
+      | Student 1          | student1@example.com | 80        | 90        | 30        |
 
   @javascript @skip_chrome_zerosize
   Scenario: Minimise the grader report containing hidden activities without the 'moodle/grade:viewhidden' capability
@@ -75,27 +77,30 @@ Feature: We can change what we are viewing on the grader report
     And the following "role capability" exists:
       | role                    | editingteacher |
       | moodle/grade:viewhidden | prevent        |
-    And I am on the "Course 1" "grades > Grader report > View" page logged in as "teacher1"
+    And I am on the "C1" "course" page logged in as "teacher1"
+    And I navigate to "View > Grader report" in the course gradebook
     Then I should see "Test assignment name 1" in the "user-grades" "table"
     And I should see "Test assignment name 2" in the "user-grades" "table"
     And I should see "Manual grade"
     And I should see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       | -5-       | -6-       | -7-       |
-      | Student 1          | 80        | -         | 30        | 105.71    |
-    And I click on "Change to aggregates only" "link"
+      | -1-                | -1-                  | -3-       | -4-       | -5-       | -6-       |
+      | Student 1          | student1@example.com | 80        | -         | 30        | 105.71    |
+    And I click on grade item menu "Course 1" of type "course" on "grader" page
+    And I choose "Show totals only" in the open action menu
     And I should not see "Test assignment name 1" in the "user-grades" "table"
     And I should not see "Test assignment name 2" in the "user-grades" "table"
     And I should not see "Manual grade"
     And I should see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       |
-      | Student 1          | 105.71    |
-    And I click on "Change to grades only" "link"
-    And I should see "Test assignment name 1" in the "user-grades" "table"
+      | -1-                | -1-                  | -3-       |
+      | Student 1          | student1@example.com | 105.71    |
+    And I click on grade item menu "Course 1" of type "course" on "grader" page
+    When I click on "Show grades only" "link"
+    Then I should see "Test assignment name 1" in the "user-grades" "table"
     And I should see "Test assignment name 2" in the "user-grades" "table"
     And I should see "Manual grade"
     And I should not see "Course total"
     And the following should exist in the "user-grades" table:
-      | -1-                | -4-       | -5-       | -6-       |
-      | Student 1          | 80        | -         | 30        |
+      | -1-                | -1-                  | -3-       | -4-       | -5-       |
+      | Student 1          | student1@example.com | 80        | -         | 30        |

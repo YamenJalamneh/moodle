@@ -725,6 +725,12 @@ class behat_navigation extends behat_base {
             case 'Admin notifications':
                 return new moodle_url('/admin/');
 
+            case 'My private files':
+                return new moodle_url('/user/files.php');
+
+            case 'System logs report':
+                return new moodle_url('/report/log/index.php');
+
             default:
                 throw new Exception('Unrecognised core page type "' . $name . '."');
         }
@@ -736,7 +742,7 @@ class behat_navigation extends behat_base {
      * Recognised page names are:
      * | Page type                  | Identifier meaning        | description                          |
      * | Category                   | category idnumber         | List of courses in that category.    |
-     * | Course                     | course shortname          | Main course home page                |
+     * | Course                     | course shortname          | Main course home pag                 |
      * | Course editing             | course shortname          | Edit settings page for the course    |
      * | Activity                   | activity idnumber         | Start page for that activity         |
      * | Activity editing           | activity idnumber         | Edit settings page for that activity |

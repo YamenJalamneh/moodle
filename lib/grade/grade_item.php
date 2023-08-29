@@ -263,6 +263,22 @@ class grade_item extends grade_object {
     public $markasoverriddenwhengraded = true;
 
     /**
+     * @var int course module ID
+     */
+    public $cmid;
+
+    /**
+     * @var string average information.
+     */
+    public $avg;
+
+    /**
+     * Category name.
+     * @var string
+     */
+    public $category;
+
+    /**
      * Constructor. Optionally (and by default) attempts to fetch corresponding row from the database
      *
      * @param array $params An array with required parameters for this grade object.
@@ -507,7 +523,7 @@ class grade_item extends grade_object {
         global $CFG, $DB;
 
         if (empty($this->courseid)) {
-            print_error('cannotinsertgrade');
+            throw new \moodle_exception('cannotinsertgrade');
         }
 
         // load scale if needed
@@ -1538,7 +1554,7 @@ class grade_item extends grade_object {
      */
     public function set_parent($parentid, $updateaggregationfields = true) {
         if ($this->is_course_item() or $this->is_category_item()) {
-            print_error('cannotsetparentforcatoritem');
+            throw new \moodle_exception('cannotsetparentforcatoritem');
         }
 
         if ($this->categoryid == $parentid) {

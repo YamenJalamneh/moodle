@@ -985,10 +985,11 @@ class sqlsrv_native_moodle_database extends moodle_database {
         $results = array();
 
         foreach ($rs as $row) {
-            $id = reset($row);
+            $rowarray = (array)$row;
+            $id = reset($rowarray);
 
             if (isset($results[$id])) {
-                $colname = key($row);
+                $colname = key($rowarray);
                 debugging("Did you remember to make the first column something unique in your call to get_records? Duplicate value '$id' found in column '$colname'.", DEBUG_DEVELOPER);
             }
             $results[$id] = (object)$row;
@@ -1013,7 +1014,8 @@ class sqlsrv_native_moodle_database extends moodle_database {
         $results = array ();
 
         foreach ($rs as $row) {
-            $results[] = reset($row);
+            $rowarray = (array)$row;
+            $results[] = reset($rowarray);
         }
         $rs->close();
 
@@ -1187,7 +1189,7 @@ class sqlsrv_native_moodle_database extends moodle_database {
     /**
      * Update record in database, as fast as possible, no safety checks, lobs not supported.
      * @param string $table name
-     * @param mixed $params data record as object or array
+     * @param stdClass|array $params data record as object or array
      * @param bool true means repeated updates expected
      * @return bool true
      * @throws dml_exception A DML specific exception is thrown for any errors.
@@ -1229,7 +1231,8 @@ class sqlsrv_native_moodle_database extends moodle_database {
      * specify the record to update
      *
      * @param string $table The database table to be checked against.
-     * @param object $dataobject An object with contents equal to fieldname=>fieldvalue. Must have an entry for 'id' to map to the table specified.
+     * @param stdClass|array $dataobject An object with contents equal to fieldname=>fieldvalue.
+     *        Must have an entry for 'id' to map to the table specified.
      * @param bool true means repeated updates expected
      * @return bool true
      * @throws dml_exception A DML specific exception is thrown for any errors.

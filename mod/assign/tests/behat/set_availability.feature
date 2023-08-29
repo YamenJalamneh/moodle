@@ -123,7 +123,7 @@ Feature: Set availability dates for an assignment
     And I wait "1" seconds
     And I set the field "Online text" to "This is my submission"
     And I press "Save changes"
-    Then I should see "Submitted for grading" in the "Submission status" "table_row"
+    And I should see "Submitted for grading" in the "Submission status" "table_row"
     And I should see "secs under the time limit" in the "Time remaining" "table_row"
 
   Scenario: Assignment with time limit and due date shows how late assignment is submitted relative to due date
@@ -145,7 +145,7 @@ Feature: Set availability dates for an assignment
     And I follow "Begin assignment"
     And I set the field "Online text" to "This is my submission"
     And I press "Save changes"
-    Then I should see "Assignment was submitted 2 days 5 hours late" in the "Time remaining" "table_row"
+    And I should see "Assignment was submitted 2 days 5 hours late" in the "Time remaining" "table_row"
 
   Scenario: Student cannot submit an assignment after the cut-off date
     Given the following "activity" exists:

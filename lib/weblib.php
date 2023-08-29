@@ -91,13 +91,18 @@ define('URL_MATCH_EXACT', 2);
  * @return string
  */
 function s($var) {
-
     if ($var === false) {
         return '0';
     }
 
-    return preg_replace('/&amp;#(\d+|x[0-9a-f]+);/i', '&#$1;',
-            htmlspecialchars($var, ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE));
+    if ($var === null || $var === '') {
+        return '';
+    }
+
+    return preg_replace(
+        '/&amp;#(\d+|x[0-9a-f]+);/i', '&#$1;',
+        htmlspecialchars($var, ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE)
+    );
 }
 
 /**
@@ -108,7 +113,6 @@ function s($var) {
  * @see s()
  *
  * @param string $var the string potentially containing HTML characters
- * @return string
  */
 function p($var) {
     echo s($var);
@@ -148,6 +152,9 @@ function addslashes_js($var) {
  * @return string The remaining URL.
  */
 function strip_querystring($url) {
+    if ($url === null || $url === '') {
+        return '';
+    }
 
     if ($commapos = strpos($url, '?')) {
         return substr($url, 0, $commapos);
@@ -336,6 +343,7 @@ class moodle_url {
             $this->anchor = $url->anchor;
 
         } else {
+            $url = $url ?? '';
             // Detect if anchor used.
             $apos = strpos($url, '#');
             if ($apos !== false) {
@@ -893,7 +901,20 @@ class moodle_url {
     }
 
     /**
-     * Returns URL a relative path from $CFG->wwwroot
+     * Checks if URL is relative to $CFG->wwwroot.
+     *
+     * @return bool True if URL is relative to $CFG->wwwroot; otherwise, false.
+     */
+    public function is_local_url() : bool {
+        global $CFG;
+
+        $url = $this->out();
+        // Does URL start with wwwroot? Otherwise, URL isn't relative to wwwroot.
+        return ( ($url === $CFG->wwwroot) || (strpos($url, $CFG->wwwroot.'/') === 0) );
+    }
+
+    /**
+     * Returns URL as relative path from $CFG->wwwroot
      *
      * Can be used for passing around urls with the wwwroot stripped
      *
@@ -905,10 +926,9 @@ class moodle_url {
     public function out_as_local_url($escaped = true, array $overrideparams = null) {
         global $CFG;
 
-        $url = $this->out($escaped, $overrideparams);
-
-        // Url should be equal to wwwroot. If not then throw exception.
-        if (($url === $CFG->wwwroot) || (strpos($url, $CFG->wwwroot.'/') === 0)) {
+        // URL should be relative to wwwroot. If not then throw exception.
+        if ($this->is_local_url()) {
+            $url = $this->out($escaped, $overrideparams);
             $localurl = substr($url, strlen($CFG->wwwroot));
             return !empty($localurl) ? $localurl : '';
         } else {
@@ -1136,7 +1156,7 @@ function validate_email($address) {
 
     require_once("{$CFG->libdir}/phpmailer/moodle_phpmailer.php");
 
-    return moodle_phpmailer::validateAddress($address) && !preg_match('/[<>]/', $address);
+    return moodle_phpmailer::validateAddress($address ?? '') && !preg_match('/[<>]/', $address);
 }
 
 /**
@@ -1237,7 +1257,7 @@ function format_text_menu() {
  * @param string $text The text to be formatted. This is raw text originally from user input.
  * @param int $format Identifier of the text format to be used
  *            [FORMAT_MOODLE, FORMAT_HTML, FORMAT_PLAIN, FORMAT_MARKDOWN]
- * @param object/array $options text formatting options
+ * @param stdClass|array $options text formatting options
  * @param int $courseiddonotuse deprecated course id, use context option instead
  * @return string
  */
@@ -1410,9 +1430,9 @@ function format_text($text, $format = FORMAT_MOODLE, $options = null, $courseidd
         }
 
         // This regex is nasty and I don't like it. The correct way to solve this is by loading the HTML like so:
-        // $domdoc->loadHTML($text, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD); however it seems like the libxml
-        // version that travis uses doesn't work properly and ends up leaving <html><body>, so I'm forced to use
-        // this regex to remove those tags.
+        // $domdoc->loadHTML($text, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD); however it seems like some libxml
+        // versions don't work properly and end up leaving <html><body>, so I'm forced to use
+        // this regex to remove those tags as a preventive measure.
         $text = trim(preg_replace('~<(?:!DOCTYPE|/?(?:html|body))[^>]*>\s*~i', '', $domdoc->saveHTML($domdoc->documentElement)));
     }
 
@@ -1470,6 +1490,11 @@ function reset_text_filters_cache($phpunitreset = false) {
  */
 function format_string($string, $striplinks = true, $options = null) {
     global $CFG, $PAGE;
+
+    if ($string === '' || is_null($string)) {
+        // No need to do any filters and cleaning.
+        return '';
+    }
 
     // We'll use a in-memory cache here to speed up repeated strings.
     static $strcache = false;
@@ -1560,7 +1585,7 @@ function format_string($string, $striplinks = true, $options = null) {
  * @return string
  */
 function replace_ampersands_not_followed_by_entity($string) {
-    return preg_replace("/\&(?![a-zA-Z0-9#]{1,8};)/", "&amp;", $string);
+    return preg_replace("/\&(?![a-zA-Z0-9#]{1,8};)/", "&amp;", $string ?? '');
 }
 
 /**
@@ -1863,7 +1888,7 @@ function purify_html($text, $options = array()) {
         $config = HTMLPurifier_Config::createDefault();
 
         $config->set('HTML.DefinitionID', 'moodlehtml');
-        $config->set('HTML.DefinitionRev', 6);
+        $config->set('HTML.DefinitionRev', 7);
         $config->set('Cache.SerializerPath', $cachedir);
         $config->set('Cache.SerializerPermissions', $CFG->directorypermissions);
         $config->set('Core.NormalizeNewlines', false);
@@ -1905,7 +1930,7 @@ function purify_html($text, $options = array()) {
 
             // Media elements.
             // https://html.spec.whatwg.org/#the-video-element
-            $def->addElement('video', 'Block', 'Optional: #PCDATA | Flow | source | track', 'Common', [
+            $def->addElement('video', 'Inline', 'Optional: #PCDATA | Flow | source | track', 'Common', [
                 'src' => 'URI',
                 'crossorigin' => 'Enum#anonymous,use-credentials',
                 'poster' => 'URI',
@@ -1919,7 +1944,7 @@ function purify_html($text, $options = array()) {
                 'height' => 'Length',
             ]);
             // https://html.spec.whatwg.org/#the-audio-element
-            $def->addElement('audio', 'Block', 'Optional: #PCDATA | Flow | source | track', 'Common', [
+            $def->addElement('audio', 'Inline', 'Optional: #PCDATA | Flow | source | track', 'Common', [
                 'src' => 'URI',
                 'crossorigin' => 'Enum#anonymous,use-credentials',
                 'preload' => 'Enum#auto,metadata,none',
@@ -2248,6 +2273,24 @@ function highlightfast($needle, $haystack) {
 }
 
 /**
+ * Converts a language code to hyphen-separated format in accordance to the
+ * {@link https://datatracker.ietf.org/doc/html/rfc5646#section-2.1 BCP47 syntax}.
+ *
+ * For additional information, check out
+ * {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang MDN web docs - lang}.
+ *
+ * @param string $langcode The language code to convert.
+ * @return string
+ */
+function get_html_lang_attribute_value(string $langcode): string {
+    if (empty(trim($langcode))) {
+        // If the language code passed is an empty string, return 'unknown'.
+        return 'unknown';
+    }
+    return str_replace('_', '-', $langcode);
+}
+
+/**
  * Return a string containing 'lang', xml:lang and optionally 'dir' HTML attributes.
  *
  * Internationalisation, for print_header and backup/restorelib.
@@ -2276,7 +2319,7 @@ function get_html_lang($dir = false) {
     }
 
     // Accessibility: added the 'lang' attribute to $direction, used in theme <html> tag.
-    $language = str_replace('_', '-', $currentlang);
+    $language = get_html_lang_attribute_value($currentlang);
     @header('Content-Language: '.$language);
     return ($direction.' lang="'.$language.'" xml:lang="'.$language.'"');
 }
@@ -2686,7 +2729,7 @@ function print_recent_activity_note($time, $user, $text, $link, $return=false, $
  * outputs a simple list structure in XHTML.
  * The data is taken from the serialised array stored in the course record.
  *
- * @param course $course A {@link $COURSE} object.
+ * @param stdClass $course A course object.
  * @param array $sections
  * @param course_modinfo $modinfo
  * @param string $strsection
@@ -3462,7 +3505,7 @@ class html_progress_trace extends progress_trace {
      * @return void Output is echo'd
      */
     public function output($message, $depth = 0) {
-        echo '<p>', str_repeat('&#160;&#160;', $depth), htmlspecialchars($message), "</p>\n";
+        echo '<p>', str_repeat('&#160;&#160;', $depth), htmlspecialchars($message, ENT_COMPAT), "</p>\n";
         flush();
     }
 }
@@ -3503,7 +3546,7 @@ class html_list_progress_trace extends progress_trace {
         if ($samedepth) {
             echo "</li>\n<li>";
         }
-        echo htmlspecialchars($message);
+        echo htmlspecialchars($message, ENT_COMPAT);
         flush();
     }
 
@@ -3557,7 +3600,7 @@ class error_log_progress_trace extends progress_trace {
  * @package core
  */
 class progress_trace_buffer extends progress_trace {
-    /** @var progres_trace */
+    /** @var progress_trace */
     protected $trace;
     /** @var bool do we pass output out */
     protected $passthrough;
@@ -3727,7 +3770,7 @@ function print_password_policy() {
  *                which format to output the doclink in.
  * @param string|object|array $a An object, string or number that can be used
  *      within translation strings
- * @return Object An object containing:
+ * @return stdClass An object containing:
  * - heading: Any heading that there may be for this help string.
  * - text: The wiki-formatted help string.
  * - doclink: An object containing a link, the linktext, and any additional

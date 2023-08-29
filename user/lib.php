@@ -33,7 +33,7 @@ define('USER_FILTER_STRING', 6);
  * Creates a user
  *
  * @throws moodle_exception
- * @param stdClass $user user to create
+ * @param stdClass|array $user user to create
  * @param bool $updatepassword if true, authentication plugin will update password.
  * @param bool $triggerevent set false if user_created event should not be triggred.
  *             This will not affect user_password_updated event triggering.
@@ -144,7 +144,7 @@ function user_create_user($user, $updatepassword = true, $triggerevent = true) {
  * Update a user with a user object (will compare against the ID)
  *
  * @throws moodle_exception
- * @param stdClass $user the user to update
+ * @param stdClass|array $user the user to update
  * @param bool $updatepassword if true, authentication plugin will update password.
  * @param bool $triggerevent set false if user_updated event should not be triggred.
  *             This will not affect user_password_updated event triggering.
@@ -361,19 +361,13 @@ function user_get_user_details($user, $course = null, array $userfields = array(
             foreach ($fields as $formfield) {
                 if ($formfield->is_visible() and !$formfield->is_empty()) {
 
-                    // TODO: Part of MDL-50728, this conditional coding must be moved to
-                    // proper profile fields API so they are self-contained.
-                    // We only use display_data in fields that require text formatting.
-                    if ($formfield->field->datatype == 'text' or $formfield->field->datatype == 'textarea') {
-                        $fieldvalue = $formfield->display_data();
-                    } else {
-                        // Cases: datetime, checkbox and menu.
-                        $fieldvalue = $formfield->data;
-                    }
-
-                    $userdetails['customfields'][] =
-                        array('name' => $formfield->field->name, 'value' => $fieldvalue,
-                            'type' => $formfield->field->datatype, 'shortname' => $formfield->field->shortname);
+                    $userdetails['customfields'][] = [
+                        'name' => $formfield->field->name,
+                        'value' => $formfield->data,
+                        'displayvalue' => $formfield->display_data(),
+                        'type' => $formfield->field->datatype,
+                        'shortname' => $formfield->field->shortname
+                    ];
                 }
             }
         }
@@ -423,8 +417,8 @@ function user_get_user_details($user, $course = null, array $userfields = array(
         if (in_array('description', $userfields)) {
             // Always return the descriptionformat if description is requested.
             list($userdetails['description'], $userdetails['descriptionformat']) =
-                    external_format_text($user->description, $user->descriptionformat,
-                            $usercontext->id, 'user', 'profile', null);
+                    \core_external\util::format_text($user->description, $user->descriptionformat,
+                            $usercontext, 'user', 'profile', null);
         }
     }
 
@@ -595,10 +589,18 @@ function user_get_user_details($user, $course = null, array $userfields = array(
  * Tries to obtain user details, either recurring directly to the user's system profile
  * or through one of the user's course enrollments (course profile).
  *
+ * You can use the $userfields parameter to reduce the amount of a user record that is required by the method.
+ * The minimum user fields are:
+ *  * id
+ *  * deleted
+ *  * all potential fullname fields
+ *
  * @param stdClass $user The user.
+ * @param array $userfields An array of userfields to be returned, the values must be a
+ *                          subset of user_get_default_fields (optional)
  * @return array if unsuccessful or the allowed user details.
  */
-function user_get_user_details_courses($user) {
+function user_get_user_details_courses($user, array $userfields = []) {
     global $USER;
     $userdetails = null;
 
@@ -609,14 +611,14 @@ function user_get_user_details_courses($user) {
 
     // Try using system profile.
     if ($systemprofile) {
-        $userdetails = user_get_user_details($user, null);
+        $userdetails = user_get_user_details($user, null, $userfields);
     } else {
         // Try through course profile.
         // Get the courses that the user is enrolled in (only active).
         $courses = enrol_get_users_courses($user->id, true);
         foreach ($courses as $course) {
             if (user_can_view_profile($user, $course)) {
-                $userdetails = user_get_user_details($user, $course);
+                $userdetails = user_get_user_details($user, $course, $userfields);
             }
         }
     }
@@ -1331,7 +1333,7 @@ function user_get_lastaccess_sql($columnname, $accesssince, $tableprefix, $havea
  * @param string $itemtype - Only user_roles is supported.
  * @param string $itemid - Courseid and userid separated by a :
  * @param string $newvalue - json encoded list of roleids.
- * @return \core\output\inplace_editable
+ * @return \core\output\inplace_editable|null
  */
 function core_user_inplace_editable($itemtype, $itemid, $newvalue) {
     if ($itemtype === 'user_roles') {
@@ -1374,3 +1376,27 @@ function user_edit_map_field_purpose($userid, $fieldname) {
     return $purpose;
 }
 
+/**
+ * Update the users public key for the specified device and app.
+ *
+ * @param string $uuid The device UUID.
+ * @param string $appid The app id, usually something like com.moodle.moodlemobile.
+ * @param string $publickey The app generated public key.
+ * @return bool
+ * @since Moodle 4.2
+ */
+function user_update_device_public_key(string $uuid, string $appid, string $publickey): bool {
+    global $USER, $DB;
+
+    if (!$DB->get_record('user_devices',
+        ['uuid' => $uuid, 'appid' => $appid, 'userid' => $USER->id]
+    )) {
+        return false;
+    }
+
+    $DB->set_field('user_devices', 'publickey', $publickey,
+        ['uuid' => $uuid, 'appid' => $appid, 'userid' => $USER->id]
+    );
+
+    return true;
+}

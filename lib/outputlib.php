@@ -690,6 +690,31 @@ class theme_config {
     public $activityheaderconfig = [];
 
     /**
+     * For backward compatibility with old themes.
+     * BLOCK_ADDBLOCK_POSITION_DEFAULT, BLOCK_ADDBLOCK_POSITION_FLATNAV.
+     * @var int
+     */
+    public $addblockposition;
+
+    /**
+     * editor_scss file(s) provided by this theme.
+     * @var array
+     */
+    public $editor_scss;
+
+    /**
+     * Name of the class extending \core\output\icon_system.
+     * @var string
+     */
+    public $iconsystem;
+
+    /**
+     * Theme defines its own editing mode switch.
+     * @var bool
+     */
+    public $haseditswitch = false;
+
+    /**
      * Load the config.php file for a particular theme, and return an instance
      * of this class. (That is, this is a factory method.)
      *
@@ -1599,7 +1624,10 @@ class theme_config {
             }
             $candidates[] = $parent_config->extrascsscallback;
         }
-        $candidates[] = $this->extrascsscallback;
+
+        if (isset($this->extrascsscallback)) {
+            $candidates[] = $this->extrascsscallback;
+        }
 
         // Calling the functions.
         foreach ($candidates as $function) {
@@ -1629,7 +1657,10 @@ class theme_config {
             }
             $candidates[] = $parent_config->prescsscallback;
         }
-        $candidates[] = $this->prescsscallback;
+
+        if (isset($this->prescsscallback)) {
+            $candidates[] = $this->prescsscallback;
+        }
 
         // Calling the functions.
         foreach ($candidates as $function) {
@@ -1854,7 +1885,7 @@ class theme_config {
         // Now resolve all theme settings or do any other postprocessing.
         // This needs to be done before calling core parser, since the parser strips [[settings]] tags.
         $csspostprocess = $this->csspostprocess;
-        if (function_exists($csspostprocess)) {
+        if ($csspostprocess && function_exists($csspostprocess)) {
             $css = $csspostprocess($css, $this);
         }
 

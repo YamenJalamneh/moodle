@@ -96,6 +96,8 @@ class comment {
     private static $comment_page = null;
     /** @var string comment itemid component in non-javascript UI */
     private static $comment_component = null;
+    /** @var stdClass comment paramaters for callback. */
+    protected $comment_param;
 
     /**
      * Construct function of comment class, initialise
@@ -135,7 +137,7 @@ class comment {
             $this->contextid = $options->contextid;
             $this->context = context::instance_by_id($this->contextid);
         } else {
-            print_error('invalidcontext');
+            throw new \moodle_exception('invalidcontext');
         }
 
         if (!empty($options->component)) {
